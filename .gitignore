@@ -1,0 +1,7 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.venv/
+venv/
+NIPS-2017-attention-is-all-you-need-Paper.pdf

@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pydantic
+pymupdf
+pytest
+python-multipart
