@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 import pymupdf
 
@@ -6,7 +7,47 @@ from app.models.document import PageContent
 
 
 class PDFExtractor:
-    """Extract text from PDF pages."""
+    """Extract and conservatively normalize text from PDF pages."""
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """
+        Conservatively normalize extracted PDF text.
+
+        Preserves paragraph boundaries, punctuation, numbers,
+        URLs, scientific notation, and equation-like text.
+        """
+
+        # Normalize line endings.
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Normalize horizontal whitespace without removing newlines.
+        text = re.sub(r"[ \t\f\v]+", " ", text)
+
+        # Clean whitespace around each line.
+        lines = []
+
+        for line in text.split("\n"):
+            line = line.strip()
+
+            if line:
+                lines.append(line)
+            elif lines and lines[-1] != "":
+                # Keep paragraph boundaries.
+                lines.append("")
+
+        # Remove leading/trailing blank lines.
+        while lines and lines[0] == "":
+            lines.pop(0)
+
+        while lines and lines[-1] == "":
+            lines.pop()
+
+        # Avoid excessive blank lines.
+        normalized = "\n".join(lines)
+        normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+
+        return normalized
 
     def extract(
         self,
@@ -31,7 +72,8 @@ class PDFExtractor:
 
             for page_index, page in enumerate(pdf):
 
-                text = page.get_text("text").strip()
+                raw_text = page.get_text("text")
+                text = self._normalize_text(raw_text)
 
                 pages.append(
                     PageContent(

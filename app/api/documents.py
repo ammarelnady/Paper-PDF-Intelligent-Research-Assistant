@@ -1,13 +1,13 @@
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.document_processing.processor import DocumentProcessor
 
 
 router = APIRouter(
-    prefix="/documents",
+    prefix="/api/v1/documents",
     tags=["Documents"]
 )
 
@@ -15,8 +15,11 @@ router = APIRouter(
 processor = DocumentProcessor()
 
 
-@router.post("/process")
-async def process_document(
+@router.post(
+    "/upload",
+    status_code=status.HTTP_201_CREATED
+)
+async def upload_document(
     file: UploadFile = File(...)
 ):
     if not file.filename:
@@ -52,13 +55,11 @@ async def process_document(
         return document.model_dump()
 
     except Exception as e:
-
         raise HTTPException(
             status_code=500,
             detail=f"Document processing failed: {str(e)}"
         )
 
     finally:
-
         if temp_path and temp_path.exists():
             temp_path.unlink()

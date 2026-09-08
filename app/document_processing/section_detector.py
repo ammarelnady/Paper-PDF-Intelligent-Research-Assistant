@@ -57,7 +57,7 @@ class SectionDetector:
             return False
 
         # Avoid scientific notation
-        if re.search(r"\d+\s*[·×x]\s*10", title):
+        if re.search(r"\d+(?:\.\d+)?\s*(?:[·×xX]|Â·|Ã—)\s*10", title):
             return False
 
         # Avoid years such as 2014, 2017, etc.

@@ -3,7 +3,7 @@ from app.document_processing.section_detector import SectionDetector
 
 
 class MetadataAwareChunker:
-    """Split text into chunks while preserving metadata."""
+    """Split text into deterministic, metadata-preserving chunks."""
 
     def __init__(
         self,
@@ -37,7 +37,7 @@ class MetadataAwareChunker:
                 len(text)
             )
 
-            # Try to avoid cutting in the middle of a word
+            # Avoid splitting in the middle of a word
             if end < len(text):
 
                 whitespace_pos = text.rfind(" ", start, end)
@@ -79,17 +79,18 @@ class MetadataAwareChunker:
                 )
             )
 
+            page_chunk_index = 0
+
             for section_name, section_text in sections:
 
-                text_chunks = self._split_text(
-                    section_text
-                )
+                text_chunks = self._split_text(section_text)
 
                 for text_chunk in text_chunks:
 
                     chunk_id = (
-                        f"{document_id}_chunk_"
-                        f"{len(chunks) + 1}"
+                        f"{document_id}:"
+                        f"p{page.page_number}:"
+                        f"c{page_chunk_index}"
                     )
 
                     chunks.append(
@@ -101,5 +102,7 @@ class MetadataAwareChunker:
                             text=text_chunk,
                         )
                     )
+
+                    page_chunk_index += 1
 
         return chunks
