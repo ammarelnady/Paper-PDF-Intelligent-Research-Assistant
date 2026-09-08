@@ -62,3 +62,5 @@ frontend/ docs/           Frontend and documentation space
 ## Phase 2 recommendation
 
 Add persistent document/chunk storage and a pluggable embedding + FAISS retrieval layer, then evaluate retrieval quality before adding web routing.
+
+# Paper-PDF-Intelligent-Research-Assistant
