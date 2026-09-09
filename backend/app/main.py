@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+"""Reserved application entry point; API integration is not implemented yet."""
+=======
 """
 FastAPI Application Entry Point for Paper PDF Intelligent Research Assistant.
 """
@@ -27,3 +30,4 @@ app.add_middleware(
 def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "project": settings.PROJECT_NAME, "version": settings.VERSION}
+>>>>>>> origin/main

@@ -1,4 +1,10 @@
 __pycache__/
+<<<<<<< HEAD
+*.pyc
+.venv/
+.env
+data/uploads/
+=======
 *.py[cod]
 .pytest_cache/
 .venv/
@@ -7,3 +13,4 @@ venv/
 
 data/uploads/*
 !data/uploads/.gitkeep
+>>>>>>> origin/main

@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+"""Reserved for Salma's summarization implementation."""
+=======
 """
 Paper summarization package: overall summaries, section summaries, and prompts.
 """
@@ -15,3 +18,4 @@ __all__ = [
     "summarize_section",
     "prompts",
 ]
+>>>>>>> origin/main

@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+"""Reserved for Reem's RAG implementation."""
+=======
 """Public interfaces for semantic retrieval and RAG."""
 
 from .bm25_store import Bm25Index
@@ -17,3 +20,4 @@ __all__ = [
     "RetrievalError", "Reranker", "ScoreReranker", "SemanticRetriever",
     "SentenceTransformerEmbeddingProvider", "VectorStoreError", "reciprocal_rank_fusion",
 ]
+>>>>>>> origin/main

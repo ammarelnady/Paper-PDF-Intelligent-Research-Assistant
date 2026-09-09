@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+"""Reserved project configuration module; routing uses no runtime configuration yet."""
+=======
 """
 Application configuration and environment settings.
 """
@@ -64,3 +67,4 @@ class Settings(BaseSettings):
 # Ensure directories exist
 settings = Settings()
 settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+>>>>>>> origin/main
