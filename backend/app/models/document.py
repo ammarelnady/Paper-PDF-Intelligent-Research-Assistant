@@ -8,6 +8,7 @@ summary.py) import `new_id` from here to keep id generation consistent.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import uuid4
@@ -63,7 +64,7 @@ class Document(BaseModel):
         return None
 
     def get_text_for_section(self, section_title: str) -> str:
-        """Return extracted text corresponding to a specific section title."""
+        """Return extracted text corresponding to a specific section title, isolating text between headings."""
         normalized = section_title.strip().lower()
         matched_sections = [
             sec for sec in self.sections if sec.title.strip().lower() == normalized or normalized in sec.title.lower()
@@ -71,8 +72,26 @@ class Document(BaseModel):
         if not matched_sections:
             return ""
 
-        sec = matched_sections[0]
+        target_sec = matched_sections[0]
+        # Gather text across the pages for this section
         page_texts = [
-            page.text for page in self.pages if sec.start_page <= page.page_number <= sec.end_page
+            page.text for page in self.pages if target_sec.start_page <= page.page_number <= target_sec.end_page
         ]
-        return "\n\n".join(page_texts).strip()
+        combined_text = "\n\n".join(page_texts).strip()
+
+        # Isolate text precisely starting after target heading and before next section heading
+        raw_heading = target_sec.raw_heading.strip()
+        if raw_heading and raw_heading in combined_text:
+            start_pos = combined_text.find(raw_heading) + len(raw_heading)
+            try:
+                current_idx = self.sections.index(target_sec)
+                if current_idx + 1 < len(self.sections):
+                    next_raw = self.sections[current_idx + 1].raw_heading.strip()
+                    if next_raw and next_raw in combined_text[start_pos:]:
+                        end_pos = start_pos + combined_text[start_pos:].find(next_raw)
+                        return combined_text[start_pos:end_pos].strip()
+            except ValueError:
+                pass
+            return combined_text[start_pos:].strip()
+
+        return combined_text

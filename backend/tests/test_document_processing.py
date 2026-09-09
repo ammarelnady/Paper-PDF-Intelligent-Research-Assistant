@@ -129,8 +129,8 @@ class TestDocumentProcessing(unittest.TestCase):
     def test_get_text_for_section(self):
         detect_sections(self.sample_document)
         method_text = self.sample_document.get_text_for_section("Methodology")
-        self.assertIn("Methodology", method_text)
         self.assertIn("end-to-end framework", method_text)
+        self.assertIn("hierarchical section segmentation", method_text)
 
     # -------------------------------------------------------------
     # 3. Metadata-Aware Chunking Tests
