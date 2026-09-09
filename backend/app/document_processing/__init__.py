@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-"""Reserved for Salma's document-processing implementation."""
-=======
 """
 Document processing pipeline: text extraction, section detection, and metadata-aware chunking.
 """
@@ -22,4 +19,3 @@ __all__ = [
     "DocumentChunker",
     "chunk_document",
 ]
->>>>>>> origin/main

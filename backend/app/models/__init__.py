@@ -1,6 +1,7 @@
-<<<<<<< HEAD
-"""Reserved for Salma's document-domain models."""
-=======
+"""
+Domain models for Document, Chunks, and Summaries.
+"""
+
 from app.models.chunk import DocumentChunk
 from app.models.document import Document, PageContent, SectionInfo, new_id
 from app.models.summary import PaperSummary
@@ -13,4 +14,3 @@ __all__ = [
     "PaperSummary",
     "new_id",
 ]
->>>>>>> origin/main
