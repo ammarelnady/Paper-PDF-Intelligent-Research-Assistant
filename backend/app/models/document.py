@@ -38,8 +38,8 @@ class SectionInfo(BaseModel):
     section_id: str = Field(default_factory=lambda: new_id("sec"))
     title: str = Field(..., description="Normalized section title, e.g. 'Introduction'.")
     raw_heading: str = Field(..., description="Heading text as it appeared in the PDF.")
-    start_page: int
-    end_page: int
+    start_page: int = Field(..., description="1-indexed start page.")
+    end_page: int = Field(..., description="1-indexed end page.")
     order: int = Field(..., description="Position of this section in reading order.")
 
 
@@ -61,3 +61,18 @@ class Document(BaseModel):
             if section.start_page <= page_number <= section.end_page:
                 return section.title
         return None
+
+    def get_text_for_section(self, section_title: str) -> str:
+        """Return extracted text corresponding to a specific section title."""
+        normalized = section_title.strip().lower()
+        matched_sections = [
+            sec for sec in self.sections if sec.title.strip().lower() == normalized or normalized in sec.title.lower()
+        ]
+        if not matched_sections:
+            return ""
+
+        sec = matched_sections[0]
+        page_texts = [
+            page.text for page in self.pages if sec.start_page <= page.page_number <= sec.end_page
+        ]
+        return "\n\n".join(page_texts).strip()
