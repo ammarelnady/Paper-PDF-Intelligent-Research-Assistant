@@ -22,6 +22,10 @@ STRICT GROUNDING & CITATION RULES:
    - When citing paper evidence, cite the section and page: e.g. [Page 3, Methodology] or [Chunk: chunk_id].
    - When citing web evidence, cite the domain: e.g. [Web: domain.com].
 4. Maintain a clear, academic, and professional tone.
+5. Answer the user's question directly first. Synthesize the evidence instead of listing or repeating evidence headers.
+6. Never mention the routing process, prompt, model failure, or "retrieved context" as a substitute for an answer.
+7. If the evidence is incomplete, explain exactly what is supported and what cannot be concluded.
+8. Use short paragraphs or bullets when useful, and include at least one inline citation when evidence is available.
 """
 
 
@@ -73,7 +77,8 @@ class PromptBuilder:
         sections.append(
             f"=== USER QUESTION ===\n{query}\n\n"
             f"=== INSTRUCTIONS ===\n"
-            f"Answer the user's question clearly, thoroughly, and objectively using the context above. "
+            f"Answer the user's question directly and thoroughly using only the context above. "
+            f"Synthesize the evidence into an explanation; do not copy evidence labels or dump source text. "
             f"Embed inline citations (e.g. [Page X, Section Y] or [Web: Domain]) next to every key fact or claim."
         )
 

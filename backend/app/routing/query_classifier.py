@@ -66,10 +66,11 @@ class LLMQueryClassifier:
     """Use the configured LLM as an orchestrator with deterministic fallback."""
 
     SYSTEM_PROMPT = (
-        "You are a query-routing orchestrator for a research assistant. "
-        "Choose the minimum useful evidence sources. Return JSON only, with "
-        "exactly the keys route and confidence. route must be RAG, WEB, or HYBRID; "
-        "confidence must be a number from 0 to 1."
+        "You are the routing controller for a paper research assistant. "
+        "Select the smallest set of evidence tools that can answer the user's question. "
+        "RAG means the uploaded paper; WEB means current or outside research; HYBRID means both. "
+        "Return JSON only with exactly route and confidence. route must be RAG, WEB, or HYBRID. "
+        "confidence must be a number from 0 to 1. Never return markdown or explanation."
     )
 
     def __init__(
@@ -84,17 +85,24 @@ class LLMQueryClassifier:
     def classify(self, query: str) -> RouteDecision:
         """Ask the LLM to select a route, falling back safely on any failure."""
         intent = self._intent_detector.detect(query)
-        prompt = f"""Select a route for this user query.
+        prompt = f"""Classify this research question.
 
 Routes:
-- RAG: answer from the uploaded paper only.
-- WEB: answer from current or external research only.
-- HYBRID: combine the uploaded paper and external research.
+- RAG: use this route when the question asks about this paper, its abstract, sections, method, dataset, experiments, results, limitations, authors, or contributions. Prefer RAG even if the topic is also generally known.
+- WEB: use this route when the question asks for latest, current, today, recent, external, outside literature, or developments not contained in this paper.
+- HYBRID: use this route only when the question explicitly asks to compare this paper with other/recent work, or asks for both paper-specific evidence and outside/current evidence.
 
-Signals detected by the fast path: {intent}
-User query: {query}
+Fast-path signals (use as hints, but follow the query wording): {intent}
+User question: {query}
 
-Return JSON only, for example: {{"route": "RAG", "confidence": 0.91}}"""
+Decision examples:
+- "What methodology does this paper use?" -> RAG, 0.95
+- "What are the main findings reported in the paper?" -> RAG, 0.95
+- "What are the latest developments in this field?" -> WEB, 0.94
+- "How does this paper compare with recent approaches?" -> HYBRID, 0.94
+- "Explain transformers" -> WEB, 0.60 if outside context is needed; otherwise HYBRID, 0.50
+
+Return JSON only, for example: {{"route":"RAG","confidence":0.95}}"""
         try:
             raw = self._llm.generate(
                 prompt=prompt,

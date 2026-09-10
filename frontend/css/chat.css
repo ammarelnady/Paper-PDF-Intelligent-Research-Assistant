@@ -8,11 +8,19 @@
 .new-chat { width: 100%; justify-content: flex-start; padding: 0.62rem 0.75rem; margin-bottom: 18px; background: var(--accent-gradient); border: 0; }
 .sidebar-rule { height: 3px; margin: 0 9px 8px; border-radius: 99px; background: #d9eee8; }
 .sidebar-caption { padding: 0 9px; color: var(--text-muted); font-size: 0.63rem; }
+.sidebar-caption-actions { margin-top: 18px; }
 .chat-history { display: flex; flex-direction: column; gap: 4px; margin-top: 9px; }
 .history-item { display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 8px 9px; border-radius: 9px; color: var(--text-secondary); font-size: 0.67rem; white-space: nowrap; overflow: hidden; }
 .history-item span { overflow: hidden; text-overflow: ellipsis; }
 .history-item.active { background: #e4f4bd; color: #345d4d; font-weight: 700; }
 :root[data-theme="dark"] .history-item.active { background: #315344; color: #e4f8bb; }
+.paper-context-card { display: flex; flex-direction: column; gap: 5px; margin: 16px 0 0; padding: 11px 10px; border: 1px solid #b7e3d0; border-radius: 13px; background: linear-gradient(145deg, #effbf3, #e3f5ec); color: #1d5549; }
+.paper-context-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.72rem; }
+.context-label { color: #2aa486; font-size: 0.57rem; font-weight: 800; letter-spacing: 0.08em; }
+.paper-context-card span:last-child { color: #6d9188; font-size: 0.61rem; }
+:root[data-theme="dark"] .paper-context-card { border-color: #397b6c; background: linear-gradient(145deg, #193b36, #17312f); color: #d9f6e8; }
+:root[data-theme="dark"] .context-label { color: #8bd9bd; }
+:root[data-theme="dark"] .paper-context-card span:last-child { color: #8eb3aa; }
 .sidebar-spacer { flex: 1; }
 .sidebar-about { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 9px; border: 1px solid #e1eee9; border-radius: 999px; background: rgba(255,255,255,0.72); color: var(--text-secondary); font-size: 0.65rem; }
 :root[data-theme="dark"] .sidebar-about { border-color: var(--border-color); background: rgba(28, 52, 50, 0.78); }

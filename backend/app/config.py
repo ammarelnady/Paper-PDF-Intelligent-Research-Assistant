@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     # Web Search & Routing (Ammar)
     WEB_SEARCH_PROVIDER: str = "duckduckgo"
-    QUERY_CLASSIFIER_MODE: str = "rules"
+    QUERY_CLASSIFIER_MODE: str = "llm"
     TAVILY_API_KEY: Optional[str] = None
     SERPER_API_KEY: Optional[str] = None
 

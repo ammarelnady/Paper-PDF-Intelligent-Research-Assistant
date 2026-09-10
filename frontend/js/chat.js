@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const paperNavLink = document.getElementById('paperNavLink');
   const sidebarPaperLink = document.getElementById('sidebarPaperLink');
   const newChatBtn = document.getElementById('newChatBtn');
+  const paperContextCard = document.getElementById('paperContextCard');
+  const sidebarPaperTitle = document.getElementById('sidebarPaperTitle');
+  const sidebarPaperMeta = document.getElementById('sidebarPaperMeta');
 
   // Update nav links with document context
   if (docId) {
@@ -28,6 +31,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (sidebarPaperLink) {
       sidebarPaperLink.href = `paper.html?id=${encodeURIComponent(docId)}`;
+    }
+    loadPaperContext();
+  } else if (paperContextCard) {
+    paperContextCard.hidden = false;
+    if (sidebarPaperTitle) sidebarPaperTitle.textContent = 'No paper selected';
+    if (sidebarPaperMeta) sidebarPaperMeta.textContent = 'Upload a paper to enable grounded answers';
+  }
+
+  async function loadPaperContext() {
+    try {
+      const documents = await API.listDocuments();
+      const paper = documents.find(item => item.document_id === docId);
+      if (!paperContextCard) return;
+      paperContextCard.hidden = false;
+      if (sidebarPaperTitle) sidebarPaperTitle.textContent = paper?.title || paper?.filename || 'Active paper';
+      if (sidebarPaperMeta) sidebarPaperMeta.textContent = paper
+        ? `${paper.num_pages || 0} pages · ${paper.num_sections || 0} sections`
+        : 'Paper context loaded';
+    } catch (err) {
+      if (paperContextCard) paperContextCard.hidden = false;
+      if (sidebarPaperMeta) sidebarPaperMeta.textContent = 'Paper context loaded';
     }
   }
 

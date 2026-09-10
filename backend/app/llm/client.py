@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -92,13 +93,20 @@ class LLMClient:
         }
 
         with httpx.Client(timeout=self.timeout) as client:
-            try:
-                response = client.post(router_url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    data = response.json()
-                    return data["choices"][0]["message"]["content"].strip()
-            except Exception:
-                pass
+            # Current Hugging Face router endpoint.
+            current_router_url = "https://router.huggingface.co/v1/chat/completions"
+            router_errors = []
+            for url in (current_router_url, router_url):
+                try:
+                    response = client.post(url, headers=headers, json=payload)
+                    if response.status_code == 200:
+                        data = response.json()
+                        content = data["choices"][0]["message"]["content"]
+                        if content and content.strip():
+                            return content.strip()
+                    router_errors.append(f"{url}: {response.status_code}")
+                except Exception as exc:
+                    router_errors.append(f"{url}: {exc}")
 
             # Fallback to direct raw input format
             raw_payload = {
@@ -115,7 +123,9 @@ class LLMClient:
                     return text.strip()
                 elif isinstance(result, dict) and "generated_text" in result:
                     return result["generated_text"].strip()
-            raise RuntimeError(f"HF API returned status {resp.status_code}: {resp.text}")
+            raise RuntimeError(
+                f"HF API failed ({'; '.join(router_errors)}); legacy status {resp.status_code}: {resp.text[:300]}"
+            )
 
     def _call_ollama(
         self,
@@ -139,10 +149,25 @@ class LLMClient:
             raise RuntimeError(f"Ollama API error: {response.text}")
 
     def _local_fallback(self, prompt: str, system_instruction: Optional[str]) -> str:
-        """Deterministic extractive heuristic answer generation for offline use."""
-        # Simple extraction of most relevant lines from prompt context
-        lines = [line.strip() for line in prompt.split("\n") if line.strip()]
-        context_lines = [l for l in lines if l.startswith("[") or "Chunk" in l or "Section" in l]
-        if context_lines:
-            return "Based on the retrieved context:\n" + "\n".join(f"- {l[:200]}" for l in context_lines[:4])
-        return "The requested information is detailed in the retrieved research context."
+        """Return a useful grounded answer when the configured provider is unavailable."""
+        query_match = re.search(r"=== USER QUESTION ===\s*(.+?)(?:\n\n===|$)", prompt, re.DOTALL)
+        query = query_match.group(1).strip() if query_match else "the question"
+        evidence = re.findall(
+            r"--- EVIDENCE #\d+ \(Page (\d+) \| Section: '([^']*)' \| ID: ([^ ]+) ---\n([\s\S]*?)(?=\n\n--- EVIDENCE|\n\n===|$)",
+            prompt,
+        )
+        if not evidence:
+            return "The configured language model is unavailable and no grounded evidence was retrieved."
+
+        terms = {word.lower() for word in re.findall(r"[A-Za-z0-9]{3,}", query)}
+        ranked = sorted(
+            evidence,
+            key=lambda item: sum(term in item[3].lower() for term in terms),
+            reverse=True,
+        )
+        bullets = []
+        for page, section, chunk_id, text in ranked[:4]:
+            cleaned = " ".join(text.split())
+            if cleaned:
+                bullets.append(f"- {cleaned[:420]} [Page {page}, {section}]" )
+        return f"Based on the retrieved paper evidence, the answer is summarized below:\n\n{chr(10).join(bullets)}"
