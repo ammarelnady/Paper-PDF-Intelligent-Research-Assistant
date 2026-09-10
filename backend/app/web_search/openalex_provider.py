@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from app.contracts import WebSource
+from app.web_search.web_search_client import WebSearchProviderError
 
 
 OpenAlexTransport = Callable[[str, float], str]
@@ -30,7 +31,16 @@ class OpenAlexSearchProvider:
         if not normalized:
             raise ValueError("query must not be empty")
         url = f"{_ENDPOINT}?{urlencode({'search': normalized, 'per-page': self._max_results})}"
-        payload = json.loads(self._transport(url, self._timeout_seconds))
+        try:
+            response = self._transport(url, self._timeout_seconds)
+        except (OSError, TimeoutError, ValueError) as error:
+            raise WebSearchProviderError("OpenAlex search request failed") from error
+        if not isinstance(response, str):
+            raise WebSearchProviderError("OpenAlex returned a non-text response")
+        try:
+            payload = json.loads(response)
+        except json.JSONDecodeError as error:
+            raise WebSearchProviderError("OpenAlex returned malformed JSON") from error
         results = payload.get("results", []) if isinstance(payload, dict) else []
         sources: list[WebSource] = []
         for item in results:
@@ -38,20 +48,27 @@ class OpenAlexSearchProvider:
                 continue
             title = str(item.get("display_name") or item.get("title") or "").strip()
             location = item.get("primary_location") or {}
+            if not isinstance(location, dict):
+                location = {}
             url_value = location.get("landing_page_url") or item.get("doi") or item.get("id")
-            if not title or not url_value:
+            if not title or not isinstance(url_value, str):
                 continue
             snippet = _abstract(item.get("abstract_inverted_index"))
             if not snippet:
                 year = item.get("publication_year") or ""
+                authorships = item.get("authorships") or []
+                if not isinstance(authorships, list):
+                    authorships = []
                 authors = ", ".join(
                     str((author.get("author") or {}).get("display_name", ""))
-                    for author in (item.get("authorships") or [])[:3]
+                    for author in authorships[:3]
                     if isinstance(author, dict)
                 )
                 snippet = f"Academic work published in {year}. Authors: {authors}.".strip()
-            domain = url_value.split("/")[2] if "://" in url_value else "openalex.org"
-            sources.append(WebSource(title=title, url=url_value, domain=domain, snippet=snippet[:500]))
+            parsed = urlparse(url_value)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+                continue
+            sources.append(WebSource(title=title, url=url_value, domain=parsed.hostname.lower(), snippet=snippet[:500]))
             if len(sources) >= self._max_results:
                 break
         return tuple(sources)

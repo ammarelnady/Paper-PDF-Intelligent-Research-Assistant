@@ -12,6 +12,7 @@ from app.contracts import RetrievedChunk, RouteDecision, WebSource
 from app.routing.query_classifier import DeterministicQueryClassifier, LLMQueryClassifier
 from app.routing.router import ResearchRouter
 from app.web_search.web_search_client import WebSearchClient
+from app.web_search.web_search_client import FallbackSearchProvider, WebSearchProviderError
 
 
 class FakeRetriever:
@@ -189,7 +190,8 @@ class RoutingTests(unittest.TestCase):
         )
 
         self.assertEqual(result.decision.route, "WEB")
-        self.assertEqual(provider.queries, ["What happened recently in Transformer research?"])
+        self.assertEqual(len(provider.queries), 1)
+        self.assertIn("recent", provider.queries[0].lower())
         self.assertEqual(result.web_sources, (self.source,))
         self.assertEqual(result.web_sources[0].url, "https://research.example.org/transformers")
         self.assertEqual(result.web_sources[0].domain, "research.example.org")
@@ -240,6 +242,61 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(result.decision.route, "RAG")
         self.assertEqual(result.retrieved_chunks, ())
         self.assertEqual(result.web_sources, ())
+
+    def test_llm_classifier_falls_back_on_invalid_route_or_confidence(self) -> None:
+        for response in ('{"route":"OTHER","confidence":0.8}', '{"route":"WEB","confidence":2}'):
+            decision = LLMQueryClassifier(FakeLLM(response)).classify(
+                "What methodology does this paper use?"
+            )
+            self.assertEqual(decision.route, "RAG")
+
+    def test_web_failure_is_recorded_without_changing_web_route(self) -> None:
+        class FailingProvider:
+            def search(self, _query: str):
+                raise WebSearchProviderError("offline")
+
+        result = ResearchRouter(
+            web_search=WebSearchClient(FailingProvider())
+        ).route("What is the latest research on RAG?")
+        self.assertEqual(result.decision.route, "WEB")
+        self.assertEqual(result.web_sources, ())
+        self.assertEqual(result.web_search_error, "offline")
+
+    def test_hybrid_keeps_paper_evidence_when_web_fails(self) -> None:
+        class FailingProvider:
+            def search(self, _query: str):
+                raise WebSearchProviderError("offline")
+
+        result = ResearchRouter(
+            retriever=FakeRetriever([self.chunk]),
+            web_search=WebSearchClient(FailingProvider()),
+        ).route("Compare this paper with recent research on transformers.")
+        self.assertEqual(result.decision.route, "HYBRID")
+        self.assertEqual(result.retrieved_chunks, (self.chunk,))
+        self.assertEqual(result.web_search_error, "offline")
+
+    def test_fallback_provider_tries_next_provider_after_error_or_empty_result(self) -> None:
+        class EmptyProvider:
+            def search(self, _query: str):
+                return ()
+
+        class WorkingProvider:
+            def search(self, _query: str):
+                return (self_source,)
+
+        self_source = self.source
+        self.assertEqual(
+            FallbackSearchProvider([EmptyProvider(), WorkingProvider()]).search("query"),
+            (self.source,),
+        )
+
+    def test_all_provider_failures_are_controlled(self) -> None:
+        class FailingProvider:
+            def search(self, _query: str):
+                raise WebSearchProviderError("offline")
+
+        with self.assertRaisesRegex(WebSearchProviderError, "All configured"):
+            FallbackSearchProvider([FailingProvider(), FailingProvider()]).search("query")
 
 
 if __name__ == "__main__":

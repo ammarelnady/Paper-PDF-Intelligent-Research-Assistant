@@ -35,6 +35,9 @@ class IntentDetector:
         r"\bthe document\b",
         r"\bthe dataset (?:did|used|use)\b",
         r"\b(?:main )?results?\b",
+        r"\b(?:main )?findings?\b",
+        r"\blimitations?\b",
+        r"\bexperiments?\b",
         r"\bmethodolog(?:y|ies)\b",
         r"\b(?:the )?experimental (?:setup|results?)\b",
     )
@@ -44,6 +47,7 @@ class IntentDetector:
         r"\bcurrent\b",
         r"\btoday\b",
         r"\bnew developments?\b",
+        r"\brecent developments?\b",
         r"\bstate[- ]of[- ]the[- ]art\b",
         r"\bwhat happened\b",
     )

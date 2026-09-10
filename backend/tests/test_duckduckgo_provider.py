@@ -83,6 +83,18 @@ class DuckDuckGoProviderTests(unittest.TestCase):
 
         self.assertEqual(provider.search("nothing"), ())
 
+    def test_duplicate_urls_are_removed(self) -> None:
+        duplicate_html = """
+        <a class="result__a" href="https://example.org/paper">First</a>
+        <div class="result__snippet">First result</div>
+        <a class="result__a" href="https://example.org/paper">Duplicate</a>
+        <div class="result__snippet">Duplicate result</div>
+        """
+        sources = DuckDuckGoHtmlSearchProvider(
+            transport=lambda _url, _timeout: duplicate_html
+        ).search("duplicates")
+        self.assertEqual([source.title for source in sources], ["First"])
+
     def test_network_failure_raises_provider_error(self) -> None:
         def failing_transport(_url: str, _timeout: float) -> str:
             raise OSError("offline")

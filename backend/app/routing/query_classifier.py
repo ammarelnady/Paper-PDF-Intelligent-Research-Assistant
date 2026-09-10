@@ -97,10 +97,13 @@ User question: {query}
 
 Decision examples:
 - "What methodology does this paper use?" -> RAG, 0.95
+- "What dataset did this paper use?" -> RAG, 0.95
+- "What limitations do the authors mention?" -> RAG, 0.95
 - "What are the main findings reported in the paper?" -> RAG, 0.95
-- "What are the latest developments in this field?" -> WEB, 0.94
+- "What is the latest research on RAG?" -> WEB, 0.95
+- "What is the latest version of GPT?" -> WEB, 0.95
+- "What are the recent developments in large language models?" -> WEB, 0.95
 - "How does this paper compare with recent approaches?" -> HYBRID, 0.94
-- "Explain transformers" -> WEB, 0.60 if outside context is needed; otherwise HYBRID, 0.50
 
 Return JSON only, for example: {{"route":"RAG","confidence":0.95}}"""
         try:

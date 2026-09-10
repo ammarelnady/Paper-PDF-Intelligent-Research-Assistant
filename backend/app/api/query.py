@@ -25,20 +25,19 @@ from app.contracts import RetrievedChunk as ContractRetrievedChunk, RouteDecisio
 from app.llm import CitationFormatter, LLMClient, PromptBuilder
 from app.rag.vector_store import RetrievedChunk
 from app.routing import DeterministicQueryClassifier, LLMQueryClassifier, ResearchRouter
-from app.web_search import DuckDuckGoHtmlSearchProvider, FallbackSearchProvider, OpenAlexSearchProvider, WebSearchClient
+from app.web_search import LLMSearchQueryRewriter, SearchQueryPreparer, WebSearchClient, build_search_provider
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/query", tags=["Query & Research"])
 
 # Initialize Shared Components
-web_provider = FallbackSearchProvider([
-    DuckDuckGoHtmlSearchProvider(),
-    OpenAlexSearchProvider(),
-])
-web_client = WebSearchClient(provider=web_provider)
 prompt_builder = PromptBuilder()
 llm_client = LLMClient()
+web_client = WebSearchClient(
+    provider=build_search_provider(settings.WEB_SEARCH_PROVIDER),
+    query_preparer=SearchQueryPreparer(LLMSearchQueryRewriter(llm_client)),
+)
 classifier = (
     LLMQueryClassifier(llm_client=llm_client)
     if settings.QUERY_CLASSIFIER_MODE.lower() in {"llm", "auto"}
@@ -141,21 +140,12 @@ def ask_question(request: QueryRequest):
         web_search=web_client,
     )
 
-    try:
-        routing_result = research_router.route(query_text)
-    except Exception as exc:
-        # Web providers are optional and may fail due to network/rate limits.
-        # Preserve the route decision and answer from paper context when possible.
-        logger.warning("External search failed; continuing without web sources: %s", exc)
-        fallback_router = ResearchRouter(
-            classifier=DeterministicQueryClassifier(),
-            retriever=AdapterRetriever() if retrieved_chunks else None,
-            web_search=None,
-        )
-        routing_result = fallback_router.route(query_text)
+    routing_result = research_router.route(query_text)
     route = routing_result.decision.route.upper()
     confidence = routing_result.decision.confidence
     web_sources: List[WebSource] = list(routing_result.web_sources)
+    if routing_result.web_search_error:
+        logger.warning("External search unavailable; continuing without web sources: %s", routing_result.web_search_error)
 
     # 3. Build Grounded Prompt
     prompt = prompt_builder.build_prompt(

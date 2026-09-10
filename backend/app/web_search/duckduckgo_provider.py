@@ -10,16 +10,13 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from urllib.request import Request, urlopen
 
 from app.contracts import WebSource
+from app.web_search.web_search_client import WebSearchProviderError
 
 
 SearchTransport = Callable[[str, float], str]
 _SEARCH_ENDPOINT: Final[str] = "https://html.duckduckgo.com/html/"
 _LITE_SEARCH_ENDPOINT: Final[str] = "https://lite.duckduckgo.com/lite/"
 _USER_AGENT: Final = "PaperResearchAssistant/1.0 (web-search boundary)"
-
-
-class WebSearchProviderError(RuntimeError):
-    """Raised when a provider cannot complete a search request."""
 
 
 class DuckDuckGoHtmlSearchProvider:
@@ -77,10 +74,12 @@ class DuckDuckGoHtmlSearchProvider:
                 raw_results = ()
 
         sources: list[WebSource] = []
+        seen_urls: set[str] = set()
         for title, href, snippet in raw_results:
             source = _to_web_source(title, href, snippet)
-            if source is not None:
+            if source is not None and source.url not in seen_urls:
                 sources.append(source)
+                seen_urls.add(source.url)
             if len(sources) == self._max_results:
                 break
         return tuple(sources)
