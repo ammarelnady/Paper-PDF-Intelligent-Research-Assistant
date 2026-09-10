@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const strategySelect = document.getElementById('strategySelect');
   const chatDocBadge = document.getElementById('chatDocBadge');
   const paperNavLink = document.getElementById('paperNavLink');
+  const sidebarPaperLink = document.getElementById('sidebarPaperLink');
+  const newChatBtn = document.getElementById('newChatBtn');
 
   // Update nav links with document context
   if (docId) {
@@ -24,6 +26,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paperNavLink) {
       paperNavLink.href = `paper.html?id=${encodeURIComponent(docId)}`;
     }
+    if (sidebarPaperLink) {
+      sidebarPaperLink.href = `paper.html?id=${encodeURIComponent(docId)}`;
+    }
+  }
+
+  document.querySelectorAll('.suggestion-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      if (!inputEl) return;
+      inputEl.value = card.dataset.question || '';
+      inputEl.focus();
+    });
+  });
+
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+      window.location.href = docId ? `chat.html?id=${encodeURIComponent(docId)}` : 'chat.html';
+    });
   }
 
   // Send on click or Enter key
