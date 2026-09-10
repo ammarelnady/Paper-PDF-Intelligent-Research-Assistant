@@ -1,5 +1,5 @@
 /**
- * API client wrapper for Paper Research Assistant.
+ * API client wrapper for PaperLens AI.
  */
 
 const API_BASE = window.location.origin.includes('http') && !window.location.origin.includes('null')

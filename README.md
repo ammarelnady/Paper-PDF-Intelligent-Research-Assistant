@@ -1,88 +1,115 @@
-# Paper Research Assistant
+# PaperLens AI
 
-An intelligent NLP/LLM research assistant that goes beyond basic "Chat with PDF" — understanding papers, extracting sections, topics, and concepts, summarizing them, performing semantic retrieval, routing queries across the paper and external web search, and generating grounded, cited answers.
+PaperLens AI is a local-first research workspace for reading, exploring, and questioning academic PDFs. It combines structured document processing, retrieval-augmented generation (RAG), configurable LLM routing, and optional web search to produce answers grounded in a paper’s content and cited source passages.
 
-## Project Structure
+## Highlights
+
+- Upload PDF research papers through a lightweight web interface.
+- Extract document text, page metadata, academic sections, topics, concepts, and keywords.
+- Generate structured summaries covering the research problem, methodology, findings, limitations, and contributions.
+- Ask questions with FAISS semantic retrieval, BM25 retrieval, or Hybrid RRF retrieval.
+- Route questions to the paper, web search, or a combined evidence path.
+- Display page- and section-aware citations for retrieved evidence.
+- Generate suggested research questions from the uploaded paper.
+- Use an extractive fallback when an LLM provider is unavailable.
+
+## Architecture
 
 ```text
-Paper-Research-Assistant/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                  # FastAPI application entry point, CORS, health check
-│   │   ├── config.py                # Global settings (chunk size, models, API keys)
-│   │   ├── models/                  # Salma — Typed data models (Document, DocumentChunk, PaperSummary)
-│   │   ├── document_processing/     # Salma — PDF text extraction, section detection, metadata chunking
-│   │   ├── summarization/           # Salma — Overall and section-level grounded summarization
-│   │   ├── topics/                  # Shahd — Topics, keywords, and concept extraction
-│   │   ├── questions/               # Shahd — Grounded suggested questions generation
-│   │   ├── rag/                     # Reem — SentenceTransformers, FAISS vector store, BM25, Hybrid RRF
-│   │   ├── routing/                 # Ammar — Deterministic query classification (RAG, WEB, HYBRID)
-│   │   ├── web_search/              # Ammar — Provider-neutral web search client
-│   │   ├── llm/                     # Mohamed — Generation, prompt building, citation formatting
-│   │   ├── evaluation/              # Mohamed — Evaluation framework
-│   │   ├── api/                     # Mohamed — FastAPI routes and schemas
-│   │   └── utils/                   # Shared utilities and logging
-│   ├── tests/                       # Unit and integration test suites
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── .gitignore
-└── frontend/                        # Vanilla HTML/CSS/JS interface
+PaperLens AI
+├── frontend/                  Vanilla HTML, CSS, and JavaScript UI
+└── backend/
+    ├── app/api/               FastAPI routes and response schemas
+    ├── app/document_processing/
+    │                           PDF extraction, section detection, chunking
+    ├── app/rag/               Embeddings, FAISS, BM25, and Hybrid RRF
+    ├── app/routing/           Query intent and route selection
+    ├── app/web_search/        Optional provider-neutral web search
+    ├── app/llm/               LLM client, prompts, and citations
+    ├── app/summarization/     Structured and section-level summaries
+    ├── app/topics/            Topics, keywords, and concepts
+    ├── app/questions/         Suggested research questions
+    └── tests/                 Automated test suite
 ```
 
-## Architecture & Modules
+## Requirements
 
-### 1. Document Processing & Summarization (Salma)
-- **PDF Extraction**: `extract_text_from_pdf` using PyMuPDF (`pymupdf`) with automatic noise/watermark stripping and title inference.
-- **Section Detection**: `detect_sections` mapping text to canonical academic sections (Abstract, Introduction, Methodology, Results, Conclusion, etc.) with page boundaries.
-- **Metadata-Aware Chunking**: `chunk_document` producing chunks tagged with `document_id`, `chunk_id`, `page_number`, `section`, `chunk_index`, and `token_estimate`.
-- **Grounded Summarizer**: `PaperSummarizer` producing structured summaries (`summary`, `key_contributions`, `problem_statement`, `methodology`, `findings`, `limitations`, `source_chunks`) and section-level summaries.
+- Python 3.10 or newer
+- A modern browser
+- Optional Hugging Face API access for LLM-powered summaries, routing, and answers
+- Optional FAISS and SentenceTransformers dependencies for semantic retrieval
 
-### 2. Paper Understanding (Shahd)
-- **Topic & Keyword Extraction**: Extracts core topics, domain keywords, and concepts from document chunks.
-- **Suggested Questions**: Generates grounded research questions tied to specific paper sections.
+## Quick start
 
-### 3. Semantic Retrieval & RAG (Reem)
-- **Embeddings**: `SentenceTransformerEmbeddingProvider` (e.g. `all-MiniLM-L6-v2`).
-- **Vector Store & Indexing**: `FaissVectorStore` (in-memory cosine similarity search via `IndexFlatIP`) and `Bm25Index`.
-- **Hybrid Search**: `SemanticRetriever` supporting FAISS semantic search and `hybrid_rrf` (Reciprocal Rank Fusion) combining FAISS and BM25.
-
-### 4. Research Agent & Query Routing (Ammar)
-- **Intent & Query Classification**: Configurable LLM orchestrator routing queries to `RAG` (paper questions), `WEB` (current / external questions), or `HYBRID` (comparative questions), with deterministic fallback.
-- **Web Search Client**: Provider-neutral web search abstraction with included no-key `DuckDuckGoHtmlSearchProvider`.
-
-### 5. LLM, API & Evaluation (Mohamed)
-- **LLM Grounded Answers**: Prompt construction with retrieved context and web snippets.
-- **Citations**: Inline citation formatting referencing exact chunk IDs, pages, and sections.
-- **FastAPI Backend & UI**: Endpoints for document upload, sections, summary, questions, and routed chat queries.
-
-## Running Tests
-
-From the `backend/` directory:
+From the repository root:
 
 ```bash
-python -m unittest discover -s tests -p "test_*.py" -v
+cd backend
+python -m venv .venv
 ```
 
-## Running the application
+Activate the virtual environment:
 
-From `backend/`, create a virtual environment, install `requirements.txt`, and
-copy `.env.example` to `.env`. Set `HUGGINGFACE_API_KEY` only in `.env` or in
-your deployment secret store; never commit credentials to source control.
+```bash
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# macOS/Linux
+source .venv/bin/activate
+```
+
+Install dependencies and configure the environment:
+
+```bash
+python -m pip install -r requirements.txt
+copy .env.example .env       # Windows
+# cp .env.example .env       # macOS/Linux
+```
+
+Add your own credentials to `.env`. Keep secrets out of source control; the repository’s `.gitignore` excludes local environment files.
+
+Start the API and frontend:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Then open <http://localhost:8000/app/index.html>. Uploaded document metadata is
-stored in `backend/data/documents.json`; generated FAISS indexes are stored in
-`backend/data/indices/` and restored when the server starts.
+Open <http://localhost:8000/app/index.html> in your browser.
 
-## Current limitations
+## Configuration
 
-- OCR for scanned/image-only PDFs is not included.
-- The default web search provider depends on DuckDuckGo availability.
-- Set `QUERY_CLASSIFIER_MODE=rules` for deterministic offline routing, or
-  `QUERY_CLASSIFIER_MODE=llm` to let the configured LLM choose the route.
-- Optional bearer-token protection is available through `API_AUTH_TOKEN`, but
-  multi-user document isolation is not included; deploy behind an authenticated
-  gateway before exposing the service publicly.
+The main settings are documented in `backend/.env.example`. Important options include:
+
+- `LLM_PROVIDER`: select Hugging Face, Ollama, or the local fallback.
+- `HUGGINGFACE_API_KEY`: API key used for Hugging Face inference.
+- `HUGGINGFACE_MODEL`: model used for generation.
+- `EMBEDDING_MODEL`: SentenceTransformers model used for semantic retrieval.
+- `QUERY_CLASSIFIER_MODE`: choose `llm` for orchestrated routing or `rules` for deterministic routing.
+- `WEB_SEARCH_ENABLED`: enable or disable external web retrieval.
+
+## Testing
+
+Run the backend tests from the `backend/` directory:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+## Data and privacy
+
+Uploaded files and generated local indexes are stored under `backend/data/`. This application is intended for local or controlled deployments. Before exposing it publicly, configure authentication, restrict CORS, protect uploaded documents, and provide separate data isolation for each user.
+
+## Known limitations
+
+- OCR for scanned or image-only PDFs is not included.
+- Web search availability depends on the configured provider and network access.
+- LLM responses can be incomplete or inaccurate; verify important claims against the cited paper pages.
+- The default registry is file-backed and is not intended for concurrent multi-user production workloads.
+
+## License
+
+PaperLens AI is released under the [MIT License](LICENSE). See the license file for the complete terms.
+
+## Acknowledgements
+
+The project builds on FastAPI, PyMuPDF, SentenceTransformers, FAISS, Pydantic, and the Hugging Face inference ecosystem.

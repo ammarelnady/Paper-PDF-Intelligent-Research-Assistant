@@ -85,8 +85,6 @@
 .chat-input { flex: 1; min-height: 43px; border: 0; outline: none; resize: none; background: transparent; color: var(--text-primary); font: inherit; font-size: 0.78rem; }
 .chat-input::placeholder { color: #9ab0ab; }
 .composer-actions { display: flex; align-items: center; gap: 9px; padding-bottom: 3px; }
-.composer-toggle { color: var(--text-secondary); font-size: 0.68rem; }
-.composer-toggle input { accent-color: #35bea0; }
 .send-button { width: 35px; height: 35px; padding: 0; border: 0; background: #e8f7df; color: #8eb6a0; }
 .send-button:hover { background: #d9f2c5; }
 .send-button svg { width: 15px; height: 15px; }

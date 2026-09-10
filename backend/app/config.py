@@ -15,7 +15,7 @@ except ImportError:  # Fallback for basic pydantic
 
 
 class Settings(BaseSettings):
-    """Global configuration settings for the Paper Research Assistant backend."""
+    """Global configuration settings for the PaperLens AI backend."""
 
     # Project metadata
     PROJECT_NAME: str = "Paper PDF Intelligent Research Assistant"
