@@ -205,6 +205,7 @@ class PaperSummarizer:
 
         prompt = OVERALL_PAPER_SUMMARY_PROMPT.format(context=context_text[:8000])
         raw_response = self.llm_caller(prompt, GROUNDEDNESS_SYSTEM_INSTRUCTION)  # type: ignore
+        extractive_fallback = self._summarize_extractive(document, chunks)
 
         try:
             cleaned_json = raw_response.strip()
@@ -215,29 +216,34 @@ class PaperSummarizer:
             data = json.loads(cleaned_json)
             limitations_val = data.get("limitations")
             if not limitations_val or str(limitations_val).strip().lower() in ["none", "null", "n/a", ""]:
-                limitations_val = "Not explicitly stated as a standalone section in the paper."
+                limitations_val = extractive_fallback.limitations
+
+            def usable(value, fallback):
+                if value is None:
+                    return fallback
+                if isinstance(value, str) and value.strip().lower() in {"none", "null", "n/a", ""}:
+                    return fallback
+                if isinstance(value, list) and not value:
+                    return fallback
+                return value
 
             return PaperSummary(
                 document_id=document.document_id,
-                summary=data.get("summary", raw_response),
+                summary=usable(data.get("summary"), extractive_fallback.summary),
                 section=None,
                 source_chunks=source_chunk_ids,
-                key_contributions=data.get("key_contributions"),
-                problem_statement=data.get("problem_statement"),
-                methodology=data.get("methodology"),
-                findings=data.get("findings"),
-                limitations=limitations_val,
+                key_contributions=usable(data.get("key_contributions"), extractive_fallback.key_contributions),
+                problem_statement=usable(data.get("problem_statement"), extractive_fallback.problem_statement),
+                methodology=usable(data.get("methodology"), extractive_fallback.methodology),
+                findings=usable(data.get("findings"), extractive_fallback.findings),
+                limitations=usable(limitations_val, extractive_fallback.limitations),
                 model_used=self.model_name,
             )
         except Exception:
-            return PaperSummary(
-                document_id=document.document_id,
-                summary=raw_response.strip(),
-                section=None,
-                source_chunks=source_chunk_ids,
-                limitations="Not explicitly stated as a standalone section in the paper.",
-                model_used=self.model_name,
-            )
+            # A provider can return prose, a refusal, or a local fallback instead
+            # of the requested JSON. Keep the overview useful and structured.
+            extractive_fallback.model_used = f"{self.model_name} (extractive fallback)"
+            return extractive_fallback
 
     def _summarize_extractive(self, document: Document, chunks: List[DocumentChunk]) -> PaperSummary:
         """

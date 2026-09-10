@@ -134,6 +134,18 @@ class TestPaperSummarization(unittest.TestCase):
         self.assertEqual(summary_result.problem_statement, "Sequential computation bottlenecks in NLP.")
         self.assertEqual(summary_result.findings, "Achieved 28.4 BLEU on English-to-German translation.")
 
+    def test_llm_invalid_response_keeps_structured_fallback(self):
+        summarizer = PaperSummarizer(
+            strategy="llm",
+            llm_caller=lambda _prompt, _system: "Based on the retrieved context: raw text",
+        )
+        result = summarizer.summarize_paper(self.document, chunks=self.chunks)
+        self.assertTrue(result.summary)
+        self.assertTrue(result.problem_statement)
+        self.assertTrue(result.methodology)
+        self.assertTrue(result.findings)
+        self.assertTrue(result.limitations)
+
     # -------------------------------------------------------------
     # 4. Groundedness Evaluation Tests
     # -------------------------------------------------------------

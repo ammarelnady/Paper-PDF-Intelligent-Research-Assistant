@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const questionsEl = document.getElementById('suggestedQuestionsList');
   const chatLink = document.getElementById('chatNavLink');
   const chatActionLink = document.getElementById('chatActionLink');
+  const paperMetaEl = document.getElementById('paperMeta');
+  const summaryModelEl = document.getElementById('summaryModel');
 
   if (!docId) {
     if (titleEl) titleEl.innerText = 'No Paper Selected';
@@ -36,11 +38,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (titleEl && document) {
       const titleSpan = titleEl.querySelector('span');
       if (titleSpan) titleSpan.textContent = document.title || document.filename || 'Paper Overview';
+      if (paperMetaEl) {
+        paperMetaEl.textContent = `${document.num_pages || 0} pages · ${document.num_chunks || 0} chunks · ${document.num_sections || 0} sections`;
+      }
     }
 
     // 1. Fetch Summary
     const summaryData = await API.getSummary(docId);
     if (summaryEl) summaryEl.innerText = summaryData.summary;
+    if (summaryModelEl) summaryModelEl.textContent = summaryData.model_used || 'Structured analysis';
     if (problemEl) problemEl.innerText = summaryData.problem_statement || 'N/A';
     if (methodEl) methodEl.innerText = summaryData.methodology || 'N/A';
     if (findingsEl) findingsEl.innerText = summaryData.findings || 'N/A';
@@ -55,37 +61,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Fetch Sections
     const sectionsData = await API.getSections(docId);
     if (sectionsEl) {
-      sectionsEl.innerHTML = sectionsData.map(s => `
+      sectionsEl.innerHTML = sectionsData.length ? sectionsData.map(s => `
         <div class="card" style="margin-bottom:0.5rem; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
           <span style="font-weight:600;">${escapeHtml(s.title)}</span>
           <span style="color:var(--text-muted); font-size:0.85rem;">Pages ${s.start_page} – ${s.end_page}</span>
         </div>
-      `).join('');
+      `).join('') : '<p class="empty-state">No sections were detected.</p>';
     }
 
     // 3. Fetch Understanding (Topics & Concepts)
     const understandData = await API.getUnderstanding(docId);
     if (topicsEl && understandData.topics) {
-      topicsEl.innerHTML = understandData.topics.map(t => `
+      topicsEl.innerHTML = understandData.topics.length ? understandData.topics.map(t => `
         <span class="tag" style="background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#93c5fd;">
           # ${escapeHtml(t.name)}
         </span>
-      `).join('');
+      `).join('') : '<span class="tag">No topics detected</span>';
     }
 
     if (conceptsEl && understandData.concepts) {
-      conceptsEl.innerHTML = understandData.concepts.map(c => `
+      conceptsEl.innerHTML = understandData.concepts.length ? understandData.concepts.map(c => `
         <span class="tag" style="background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.3); color:#c4b5fd;">
           💡 ${escapeHtml(c.name)}
         </span>
-      `).join('');
+      `).join('') : '<span class="tag">No concepts detected</span>';
     }
 
     // 4. Fetch Suggested Questions
     const questionsData = await API.getSuggestedQuestions(docId);
     if (questionsEl && questionsData) {
-      questionsEl.innerHTML = questionsData.map(q => `
-        <div class="card" style="margin-bottom:0.6rem; padding:0.85rem 1rem; display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+      questionsEl.innerHTML = questionsData.length ? questionsData.map(q => `
+        <div class="question-item">
           <div>
             <span class="badge badge-rag" style="font-size:0.7rem; margin-bottom:0.25rem;">${escapeHtml(q.category)}</span>
             <p style="font-size:0.95rem; font-weight:500;">${escapeHtml(q.question)}</p>
@@ -94,7 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             Ask 💬
           </a>
         </div>
-      `).join('');
+      `).join('') : '<p class="empty-state">No suggested questions were generated.</p>';
     }
 
   } catch (err) {

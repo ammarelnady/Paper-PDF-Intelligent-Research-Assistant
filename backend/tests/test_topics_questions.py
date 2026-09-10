@@ -107,6 +107,19 @@ class ExtractionTests(unittest.TestCase):
 
 
 class QuestionAndPipelineTests(unittest.TestCase):
+    def test_llm_questions_are_structured_and_source_linked(self) -> None:
+        def mock_llm(_prompt: str, _system: str) -> str:
+            return (
+                '[{"category":"methodology",'
+                '"question":"How does the proposed graph model work?",'
+                '"source_chunk_ids":["paper-1:p2:c1"]}]'
+            )
+
+        questions = QuestionGenerator(llm_caller=mock_llm).generate(CHUNKS)
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].category, "methodology")
+        self.assertEqual(questions[0].source_chunk_ids, ["paper-1:p2:c1"])
+
     def test_questions_are_grounded_and_diverse(self) -> None:
         topics = TopicExtractor(max_topics=3).extract(CHUNKS)
         concepts = ConceptExtractor(max_concepts=3).extract(CHUNKS)

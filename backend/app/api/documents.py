@@ -96,10 +96,7 @@ def load_persisted_documents() -> None:
             SUMMARIES_REGISTRY[doc_id] = _model_validate(PaperSummary, raw_summary)
 
         from app.rag import Bm25Index, FaissVectorStore, SentenceTransformerEmbeddingProvider
-        from app.topics import PaperUnderstandingAnalyzer
         for doc_id, chunks in CHUNKS_REGISTRY.items():
-            if chunks:
-                ANALYSIS_REGISTRY[doc_id] = PaperUnderstandingAnalyzer().analyze(chunks)
             index_dir = settings.INDICES_DIR / doc_id
             if chunks and index_dir.exists():
                 try:
@@ -168,7 +165,9 @@ async def upload_document(file: UploadFile = File(...)):
         summary = summarizer.summarize_paper(document, chunks=chunks)
 
         # 6. Paper Understanding (Shahd)
-        analyzer = PaperUnderstandingAnalyzer()
+        analyzer = PaperUnderstandingAnalyzer(
+            llm_caller=llm_caller if settings.HUGGINGFACE_API_KEY else None,
+        )
         understanding = analyzer.analyze(chunks)
 
         # 7. RAG Semantic Indexing (Reem)
@@ -267,6 +266,19 @@ def delete_document(document_id: str) -> None:
 def get_paper_summary(document_id: str):
     """Get the structured overall summary for a document."""
     summary = SUMMARIES_REGISTRY.get(document_id)
+    required_fields = (
+        summary.problem_statement if summary else None,
+        summary.methodology if summary else None,
+        summary.findings if summary else None,
+        summary.limitations if summary else None,
+    )
+    if summary and any(
+        not value or (isinstance(value, str) and value.strip().lower() in {"n/a", "none", "null"})
+        for value in required_fields
+    ):
+        # Regenerate summaries created by older versions that returned raw LLM
+        # fallback text without the structured fields.
+        summary = None
     if not summary:
         doc = DOCUMENTS_REGISTRY.get(document_id)
         if not doc:
@@ -324,7 +336,13 @@ def get_understanding(document_id: str):
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found.")
         chunks = CHUNKS_REGISTRY.get(document_id, [])
-        analyzer = PaperUnderstandingAnalyzer()
+        llm = LLMClient()
+        llm_caller = lambda prompt, sys_prompt: llm.generate(
+            prompt=prompt, system_instruction=sys_prompt
+        )
+        analyzer = PaperUnderstandingAnalyzer(
+            llm_caller=llm_caller if settings.HUGGINGFACE_API_KEY else None,
+        )
         analysis = analyzer.analyze(chunks)
         ANALYSIS_REGISTRY[document_id] = analysis
 

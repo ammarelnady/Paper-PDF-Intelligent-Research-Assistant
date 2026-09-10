@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Callable, Optional
 
 from app.questions.question_generator import QuestionGenerator
 
@@ -26,12 +26,16 @@ class PaperUnderstandingAnalyzer:
         max_concepts: int = 12,
         max_sections: int = 6,
         max_questions: int = 8,
+        llm_caller: Optional[Callable[[str, str], str]] = None,
     ) -> None:
         self.keyword_extractor = KeywordExtractor(max_keywords=max_keywords)
         self.topic_extractor = TopicExtractor(max_topics=max_topics)
         self.concept_extractor = ConceptExtractor(max_concepts=max_concepts)
         self.section_identifier = ImportantSectionIdentifier(max_sections=max_sections)
-        self.question_generator = QuestionGenerator(max_questions=max_questions)
+        self.question_generator = QuestionGenerator(
+            max_questions=max_questions,
+            llm_caller=llm_caller,
+        )
 
     def analyze(self, chunks: Iterable[Any]) -> UnderstandingResult:
         normalized_chunks = normalize_chunks(chunks)

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any
+import json
+import re
+from typing import Any, Callable, Optional
 
 from app._shared_contracts import SuggestedQuestion
 from app.chunk_adapter import normalize_chunks, remove_duplicates
@@ -58,10 +60,16 @@ def find_question_rule(text: str) -> dict[str, Any] | None:
 
 
 class QuestionGenerator:
-    def __init__(self, *, max_questions: int = 8) -> None:
+    def __init__(
+        self,
+        *,
+        max_questions: int = 8,
+        llm_caller: Optional[Callable[[str, str], str]] = None,
+    ) -> None:
         if max_questions < 1:
             raise ValueError("max_questions must be at least 1")
         self.max_questions = max_questions
+        self.llm_caller = llm_caller
 
     def generate(
         self,
@@ -72,6 +80,14 @@ class QuestionGenerator:
     ) -> list[SuggestedQuestion]:
         normalized_chunks = normalize_chunks(chunks)
         document_id = normalized_chunks[0].document_id
+
+        if self.llm_caller:
+            llm_questions = self._generate_with_llm(
+                normalized_chunks, topics=topics, concepts=concepts
+            )
+            if llm_questions:
+                return llm_questions
+
         candidates: list[tuple[str, str, list[str]]] = []
         seen_sections: set[tuple[str, str]] = set()
 
@@ -137,6 +153,75 @@ class QuestionGenerator:
             if len(questions) == self.max_questions:
                 break
         return questions
+
+    def _generate_with_llm(
+        self,
+        chunks: Sequence[Any],
+        *,
+        topics: Sequence[Any],
+        concepts: Sequence[Any],
+    ) -> list[SuggestedQuestion]:
+        """Generate source-linked questions from the paper using structured JSON."""
+        allowed_ids = {chunk.chunk_id for chunk in chunks}
+        context = "\n\n".join(
+            f"[{chunk.chunk_id}] Section: {chunk.section}\n{chunk.text[:700]}"
+            for chunk in chunks[:12]
+        )
+        topic_names = ", ".join(str(topic.name) for topic in topics[:8]) or "none"
+        concept_names = ", ".join(str(concept.name) for concept in concepts[:8]) or "none"
+        prompt = f"""Generate up to {self.max_questions} insightful research questions grounded in this paper.
+
+Return JSON only as an array of objects with exactly these keys:
+category, question, source_chunk_ids.
+Categories should be meaningful values such as summary, methodology, dataset,
+results, limitations, or concept. Every source_chunk_ids value must come from
+the chunk IDs shown below. Do not invent facts or ask questions unrelated to
+the supplied paper.
+
+Topics: {topic_names}
+Concepts: {concept_names}
+
+Paper context:
+{context}
+"""
+        try:
+            raw = self.llm_caller(prompt, "You create grounded research questions. Return valid JSON only.")
+            cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.IGNORECASE)
+            try:
+                items = json.loads(cleaned)
+            except json.JSONDecodeError:
+                match = re.search(r"\[.*\]", cleaned, flags=re.DOTALL)
+                if not match:
+                    return []
+                items = json.loads(match.group(0))
+            if not isinstance(items, list):
+                return []
+
+            questions: list[SuggestedQuestion] = []
+            seen: set[str] = set()
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                question = str(item.get("question", "")).strip()
+                category = str(item.get("category", "summary")).strip().lower() or "summary"
+                source_ids = [str(value) for value in item.get("source_chunk_ids", []) if str(value) in allowed_ids]
+                if not question or not source_ids or question.lower() in seen:
+                    continue
+                seen.add(question.lower())
+                questions.append(
+                    SuggestedQuestion(
+                        question_id=f"question-{len(questions) + 1:03d}",
+                        document_id=chunks[0].document_id,
+                        question=question,
+                        source_chunk_ids=remove_duplicates(source_ids),
+                        category=category,
+                    )
+                )
+                if len(questions) >= self.max_questions:
+                    break
+            return questions
+        except Exception:
+            return []
 
 
 __all__ = ["QuestionGenerator"]
