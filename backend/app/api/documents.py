@@ -349,11 +349,11 @@ def get_understanding(document_id: str):
         ],
         concepts=[
             ConceptItem(
-                concept_id=c.concept_id,
+                concept_id=f"concept-{index:03d}",
                 name=c.name,
-                definition=c.definition,
+                definition=None,
                 source_chunk_ids=list(c.source_chunk_ids),
             )
-            for c in analysis.analysis.concepts
+            for index, c in enumerate(analysis.analysis.concepts, start=1)
         ],
     )
