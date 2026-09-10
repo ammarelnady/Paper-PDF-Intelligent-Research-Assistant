@@ -42,8 +42,13 @@
 :root[data-theme="dark"] .chat-input-area { background: #142b2a; }
 .composer-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; background: linear-gradient(90deg, #c8eda9, #5dd3b0); color: #31564c; font-size: 0.67rem; }
 .composer-toolbar-left { display: flex; align-items: center; gap: 8px; }
-.composer-toolbar select { border: 0; background: transparent; color: #31564c; font-size: 0.68rem; font-weight: 700; outline: none; }
-.composer-toolbar select option { color: #173f40; }
+.composer-toolbar select { min-width: 128px; padding: 5px 24px 5px 9px; border: 1px solid rgba(35, 118, 97, 0.28); border-radius: 999px; appearance: auto; background: rgba(255,255,255,0.42); color: #214f46; font-size: 0.68rem; font-weight: 700; outline: none; cursor: pointer; }
+.composer-toolbar select:hover, .composer-toolbar select:focus { border-color: #239e82; background: rgba(255,255,255,0.72); }
+.composer-toolbar select option { background: #f5fffb; color: #173f40; font-weight: 600; }
+:root[data-theme="dark"] .composer-toolbar select { border-color: #397b6c; background: rgba(20, 60, 55, 0.82); color: #d9f6e8; color-scheme: dark; }
+:root[data-theme="dark"] .composer-toolbar select:hover,
+:root[data-theme="dark"] .composer-toolbar select:focus { border-color: #72d5b5; background: #1c4a42; }
+:root[data-theme="dark"] .composer-toolbar select option { background: #193331; color: #e1f8ee; }
 .composer-hint { color: #38786a; }
 .composer-body { display: flex; align-items: flex-end; gap: 10px; padding: 12px; }
 .chat-input { flex: 1; min-height: 43px; border: 0; outline: none; resize: none; background: transparent; color: var(--text-primary); font: inherit; font-size: 0.78rem; }

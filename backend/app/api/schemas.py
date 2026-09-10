@@ -25,6 +25,8 @@ class SectionResponse(BaseModel):
     start_page: int
     end_page: int
     order: int
+    level: int = 1
+    parent_section_id: Optional[str] = None
 
 
 class PaperSummaryResponse(BaseModel):

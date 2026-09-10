@@ -29,6 +29,7 @@ from app.document_processing import (
     detect_sections,
     extract_text_from_pdf,
 )
+from app.document_processing.section_analyzer import SectionOutlineAnalyzer
 from app.llm import LLMClient
 from app.models.chunk import DocumentChunk
 from app.models.document import Document
@@ -148,15 +149,19 @@ async def upload_document(file: UploadFile = File(...)):
         with open(save_path, "wb") as f:
             f.write(content)
 
-        # 3. Detect Sections (Salma)
+        # 3. Detect and hierarchically organize sections with the LLM when available
         sections = detect_sections(document)
+
+        llm = LLMClient()
+        llm_caller = lambda prompt, sys_prompt: llm.generate(prompt=prompt, system_instruction=sys_prompt)
+        sections = SectionOutlineAnalyzer(
+            llm_caller=llm_caller if settings.HUGGINGFACE_API_KEY else None,
+        ).analyze(document, sections)
 
         # 4. Chunk with Metadata (Salma)
         chunks = chunk_document(document, chunk_size=settings.CHUNK_SIZE, chunk_overlap=settings.CHUNK_OVERLAP)
 
         # 5. Summarize (Salma) - wire LLM when API key is available
-        llm = LLMClient()
-        llm_caller = lambda prompt, sys_prompt: llm.generate(prompt=prompt, system_instruction=sys_prompt)
         summarizer = PaperSummarizer(
             strategy="llm" if settings.HUGGINGFACE_API_KEY else "extractive",
             llm_caller=llm_caller if settings.HUGGINGFACE_API_KEY else None,
@@ -314,6 +319,13 @@ def get_sections(document_id: str):
     doc = DOCUMENTS_REGISTRY.get(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
+    # Upgrade documents created before hierarchical outlines were introduced.
+    if doc.sections and all(section.outline_source == "detector" for section in doc.sections) and settings.HUGGINGFACE_API_KEY:
+        llm = LLMClient()
+        llm_caller = lambda prompt, sys_prompt: llm.generate(prompt=prompt, system_instruction=sys_prompt)
+        sections = SectionOutlineAnalyzer(llm_caller=llm_caller).analyze(doc, doc.sections)
+        if sections:
+            _save_registry()
     return [
         SectionResponse(
             section_id=s.section_id,
@@ -322,6 +334,8 @@ def get_sections(document_id: str):
             start_page=s.start_page,
             end_page=s.end_page,
             order=s.order,
+            level=s.level,
+            parent_section_id=s.parent_section_id,
         )
         for s in doc.sections
     ]

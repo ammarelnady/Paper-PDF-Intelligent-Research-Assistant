@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const chatActionLink = document.getElementById('chatActionLink');
   const paperMetaEl = document.getElementById('paperMeta');
   const summaryModelEl = document.getElementById('summaryModel');
+  const addSectionBtn = document.getElementById('addSectionBtn');
+  let sectionsDataCache = [];
 
   if (!docId) {
     if (titleEl) titleEl.innerText = 'No Paper Selected';
@@ -60,13 +62,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Fetch Sections
     const sectionsData = await API.getSections(docId);
-    if (sectionsEl) {
-      sectionsEl.innerHTML = sectionsData.length ? sectionsData.map(s => `
-        <div class="card" style="margin-bottom:0.5rem; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-weight:600;">${escapeHtml(s.title)}</span>
-          <span style="color:var(--text-muted); font-size:0.85rem;">Pages ${s.start_page} – ${s.end_page}</span>
-        </div>
-      `).join('') : '<p class="empty-state">No sections were detected.</p>';
+    sectionsDataCache = sectionsData;
+    if (sectionsEl) renderOutline(sectionsData);
+    if (addSectionBtn) {
+      addSectionBtn.addEventListener('click', () => addCustomSubsection(sectionsData));
     }
 
     // 3. Fetch Understanding (Topics & Concepts)
@@ -107,6 +106,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Failed to load paper details', err);
     if (titleEl && titleEl.querySelector('span')) titleEl.querySelector('span').textContent = 'Unable to load paper';
     if (summaryEl) summaryEl.textContent = `Could not load this paper: ${err.message}`;
+  }
+
+  function renderOutline(sections) {
+    const custom = JSON.parse(localStorage.getItem(`paper-outline-${docId}`) || '[]');
+    const allSections = sections.concat(custom);
+    if (!allSections.length) {
+      sectionsEl.innerHTML = '<p class="empty-state">No sections were detected.</p>';
+      return;
+    }
+    sectionsEl.innerHTML = allSections.map((section, index) => `
+      <details class="outline-item level-${Math.min(section.level || 1, 5)}" ${section.level === 1 ? 'open' : ''}>
+        <summary>
+          <span class="outline-title">${escapeHtml(section.title)}</span>
+          <span class="outline-meta">Pages ${section.start_page || '—'} – ${section.end_page || '—'}</span>
+        </summary>
+        <div class="outline-actions">
+          <span>${section.parent_section_id ? 'Nested subsection' : 'Top-level section'}</span>
+          <button class="outline-add-child" type="button" data-index="${index}">＋ Add child</button>
+        </div>
+      </details>
+    `).join('');
+    sectionsEl.querySelectorAll('.outline-add-child').forEach(button => {
+      button.addEventListener('click', () => addCustomSubsection(allSections[Number(button.dataset.index)]));
+    });
+  }
+
+  function addCustomSubsection(parent) {
+    const title = window.prompt(`Add a subsection under “${parent?.title || 'Paper'}”:`);
+    if (!title || !title.trim()) return;
+    const key = `paper-outline-${docId}`;
+    const custom = JSON.parse(localStorage.getItem(key) || '[]');
+    custom.push({
+      section_id: `custom-${Date.now()}`,
+      title: title.trim(),
+      level: Math.min((parent?.level || 1) + 1, 8),
+      parent_section_id: parent?.section_id || null,
+      start_page: parent?.start_page || null,
+      end_page: parent?.end_page || null,
+    });
+    localStorage.setItem(key, JSON.stringify(custom));
+    renderOutline(sectionsDataCache);
   }
   function escapeHtml(value) {
     const div = document.createElement('div');

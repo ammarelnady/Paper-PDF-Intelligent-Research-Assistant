@@ -42,6 +42,9 @@ class SectionInfo(BaseModel):
     start_page: int = Field(..., description="1-indexed start page.")
     end_page: int = Field(..., description="1-indexed end page.")
     order: int = Field(..., description="Position of this section in reading order.")
+    level: int = Field(default=1, ge=1, le=8, description="Heading depth in the paper outline.")
+    parent_section_id: Optional[str] = Field(default=None, description="Nearest parent heading, if nested.")
+    outline_source: str = Field(default="detector", description="How the outline was produced.")
 
 
 class Document(BaseModel):
