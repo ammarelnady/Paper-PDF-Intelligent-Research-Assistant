@@ -17,15 +17,14 @@
       <a href="index.html">Upload</a>
       <a href="paper.html" id="paperNavLink">Paper</a>
       <a href="chat.html" class="active">Chat</a>
+      <button id="themeToggle" class="theme-toggle" type="button">☾ Dark mode</button>
     </nav>
   </header>
 
   <main class="research-shell">
     <section class="research-workspace">
       <div class="workspace-topbar">
-        <a href="index.html">Pricing</a>
-        <a href="index.html" class="btn">Sign Up</a>
-        <a href="index.html" class="btn btn-primary">Login</a>
+        <span>LLM-powered research workspace</span>
       </div>
 
       <div class="chat-layout">
@@ -40,10 +39,6 @@
             <a class="history-item" href="paper.html" id="sidebarPaperLink"><span>Paper overview</span></a>
           </div>
           <div class="sidebar-spacer"></div>
-          <div class="guest-card">
-            This is an anonymous Research Compass chat. It will expire in 29 days.
-            <div class="guest-actions"><a href="index.html" class="btn">Sign Up</a><a href="index.html" class="btn btn-primary">Login</a></div>
-          </div>
           <div class="sidebar-about"><span class="about-icon">✦</span><span>Know About<br>Research Compass?</span><b>›</b></div>
         </aside>
 
@@ -100,6 +95,7 @@
   </main>
 
   <script src="js/api.js"></script>
+  <script src="js/theme.js"></script>
   <script src="js/chat.js"></script>
 </body>
 </html>

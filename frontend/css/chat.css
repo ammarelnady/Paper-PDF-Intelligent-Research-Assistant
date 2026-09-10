@@ -1,6 +1,9 @@
 .chat-layout { display: grid; grid-template-columns: 214px minmax(0, 1fr); min-height: 650px; }
 .chat-sidebar { display: flex; flex-direction: column; padding: 22px 14px 18px; border-right: 1px solid #e0efea; background: rgba(255, 255, 255, 0.56); }
+:root[data-theme="dark"] .chat-sidebar { border-color: var(--border-color); background: rgba(13, 28, 28, 0.72); }
 .sidebar-brand { display: flex; align-items: center; gap: 7px; margin-bottom: 24px; color: #173f40; font-size: 0.75rem; font-weight: 800; }
+:root[data-theme="dark"] .sidebar-brand,
+:root[data-theme="dark"] .sidebar-brand-mark { color: #d8f5ec; border-color: #82c9b7; }
 .sidebar-brand-mark { display: grid; place-items: center; width: 25px; height: 25px; border: 2px solid #173f40; border-radius: 6px; font-size: 0.7rem; }
 .new-chat { width: 100%; justify-content: flex-start; padding: 0.62rem 0.75rem; margin-bottom: 18px; background: var(--accent-gradient); border: 0; }
 .sidebar-rule { height: 3px; margin: 0 9px 8px; border-radius: 99px; background: #d9eee8; }
@@ -9,11 +12,10 @@
 .history-item { display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 8px 9px; border-radius: 9px; color: var(--text-secondary); font-size: 0.67rem; white-space: nowrap; overflow: hidden; }
 .history-item span { overflow: hidden; text-overflow: ellipsis; }
 .history-item.active { background: #e4f4bd; color: #345d4d; font-weight: 700; }
+:root[data-theme="dark"] .history-item.active { background: #315344; color: #e4f8bb; }
 .sidebar-spacer { flex: 1; }
-.guest-card { padding: 12px 10px; border-radius: 13px; background: #fff5e5; color: #6b6658; font-size: 0.64rem; line-height: 1.4; }
-.guest-actions { display: flex; gap: 8px; margin-top: 10px; }
-.guest-actions .btn { padding: 0.4rem 0.7rem; font-size: 0.65rem; }
 .sidebar-about { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 9px; border: 1px solid #e1eee9; border-radius: 999px; background: rgba(255,255,255,0.72); color: var(--text-secondary); font-size: 0.65rem; }
+:root[data-theme="dark"] .sidebar-about { border-color: var(--border-color); background: rgba(28, 52, 50, 0.78); }
 .about-icon { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: #173f40; color: white; font-weight: 800; }
 
 .chat-main { display: flex; min-width: 0; flex-direction: column; padding: 0 34px 18px; }
@@ -29,12 +31,15 @@
 .message.assistant { align-self: stretch; }
 .avatar { display: none; }
 .bubble { width: 100%; padding: 13px 16px; border: 1px solid #e0ece7; border-radius: 16px; background: rgba(255,255,255,0.78); color: var(--text-primary); font-size: 0.78rem; line-height: 1.65; box-shadow: 0 7px 20px rgba(55, 124, 106, 0.05); }
+:root[data-theme="dark"] .bubble,
+:root[data-theme="dark"] .citation-card { border-color: var(--border-color); background: rgba(25, 49, 47, 0.86); }
 .message.user .bubble { width: auto; background: #dff4b5; border-color: #c9e89a; color: #315a4c; }
 .route-pill { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .citation-card { margin-top: 9px; padding: 10px; border: 1px solid #e1eee9; border-radius: 11px; background: #f5fffb; font-size: 0.72rem; }
 .citation-card-header { display: flex; justify-content: space-between; gap: 12px; color: var(--accent-cyan); font-weight: 800; }
 .citation-card a { color: var(--accent-cyan) !important; }
 .chat-input-area { position: relative; display: flex; flex-direction: column; gap: 0; padding: 0; border: 1px solid #48c8aa; border-radius: 16px; background: white; box-shadow: 0 9px 24px rgba(43, 177, 143, 0.1); overflow: hidden; }
+:root[data-theme="dark"] .chat-input-area { background: #142b2a; }
 .composer-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; background: linear-gradient(90deg, #c8eda9, #5dd3b0); color: #31564c; font-size: 0.67rem; }
 .composer-toolbar-left { display: flex; align-items: center; gap: 8px; }
 .composer-toolbar select { border: 0; background: transparent; color: #31564c; font-size: 0.68rem; font-weight: 700; outline: none; }
