@@ -21,7 +21,7 @@ from app.api.documents import (
 )
 from app.api.schemas import PaperCitation, QueryRequest, QueryResponse, WebCitation
 from app.config import settings
-from app.contracts import RetrievedChunk as ContractRetrievedChunk, WebSource
+from app.contracts import RetrievedChunk as ContractRetrievedChunk, RouteDecision, WebSource
 from app.llm import CitationFormatter, LLMClient, PromptBuilder
 from app.rag.vector_store import RetrievedChunk
 from app.routing import DeterministicQueryClassifier, LLMQueryClassifier, ResearchRouter
@@ -125,8 +125,18 @@ def ask_question(request: QueryRequest):
                 for c in retrieved_chunks
             ]
 
+    route_classifier = classifier
+    if request.document_id and request.strategy:
+        # The strategy selector controls paper retrieval, so an explicit paper
+        # strategy must not be overridden by the LLM into a WEB route.
+        class PaperOnlyClassifier:
+            def classify(self, _query: str) -> RouteDecision:
+                return RouteDecision(route="RAG", confidence=1.0)
+
+        route_classifier = PaperOnlyClassifier()
+
     research_router = ResearchRouter(
-        classifier=classifier,
+        classifier=route_classifier,
         retriever=AdapterRetriever() if retrieved_chunks else None,
         web_search=web_client,
     )
