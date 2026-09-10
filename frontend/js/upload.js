@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function handleFileUpload(file) {
+    if (uploadArea?.classList.contains('is-processing')) return;
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       alert('Please select a valid PDF file.');
       return;
@@ -46,11 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (statusDiv) {
       statusDiv.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:center; gap:0.75rem; margin-top:1.5rem;">
+        <div class="upload-status-row">
           <div class="loader"></div>
-          <span style="color:var(--accent-cyan); font-weight:600;">Processing & Indexing Paper... Please wait</span>
+          <span>Processing &amp; Indexing Paper... Please wait</span>
         </div>
       `;
+      uploadArea?.classList.add('is-processing');
     }
 
     try {
@@ -58,8 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = `paper.html?id=${encodeURIComponent(result.document_id)}`;
     } catch (err) {
       if (statusDiv) {
-        statusDiv.innerHTML = `<div style="color:#ef4444; margin-top:1.5rem; font-weight:600;">Error: ${escapeHtml(err.message)}</div>`;
+        statusDiv.innerHTML = `<div class="upload-status-row upload-error">Error: ${escapeHtml(err.message)}</div>`;
       }
+      uploadArea?.classList.remove('is-processing');
     }
   }
 

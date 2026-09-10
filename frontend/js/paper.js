@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const understandData = await API.getUnderstanding(docId);
     if (topicsEl && understandData.topics) {
       topicsEl.innerHTML = understandData.topics.length ? understandData.topics.map(t => `
-        <span class="tag" style="background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); color:#93c5fd;">
+        <span class="tag topic-tag">
           # ${escapeHtml(t.name)}
         </span>
       `).join('') : '<span class="tag">No topics detected</span>';
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (conceptsEl && understandData.concepts) {
       conceptsEl.innerHTML = understandData.concepts.length ? understandData.concepts.map(c => `
-        <span class="tag" style="background:rgba(139,92,246,0.15); border-color:rgba(139,92,246,0.3); color:#c4b5fd;">
+        <span class="tag concept-tag">
           💡 ${escapeHtml(c.name)}
         </span>
       `).join('') : '<span class="tag">No concepts detected</span>';
