@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const paperMetaEl = document.getElementById('paperMeta');
   const summaryModelEl = document.getElementById('summaryModel');
   const addSectionBtn = document.getElementById('addSectionBtn');
+  const expandOutlineBtn = document.getElementById('expandOutlineBtn');
+  const collapseOutlineBtn = document.getElementById('collapseOutlineBtn');
   let sectionsDataCache = [];
 
   if (!docId) {
@@ -67,6 +69,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addSectionBtn) {
       addSectionBtn.addEventListener('click', () => addCustomSubsection(sectionsData));
     }
+    if (expandOutlineBtn) expandOutlineBtn.addEventListener('click', () => toggleOutline(true));
+    if (collapseOutlineBtn) collapseOutlineBtn.addEventListener('click', () => toggleOutline(false));
 
     // 3. Fetch Understanding (Topics & Concepts)
     const understandData = await API.getUnderstanding(docId);
@@ -121,15 +125,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="outline-title">${escapeHtml(section.title)}</span>
           <span class="outline-meta">Pages ${section.start_page || '—'} – ${section.end_page || '—'}</span>
         </summary>
-        <div class="outline-actions">
-          <span>${section.parent_section_id ? 'Nested subsection' : 'Top-level section'}</span>
-          <button class="outline-add-child" type="button" data-index="${index}">＋ Add child</button>
+        <div class="outline-detail">
+          <span>${section.parent_section_id ? 'Nested in the paper outline' : 'Paper section'}</span>
+          <a href="chat.html?id=${encodeURIComponent(docId)}&q=${encodeURIComponent(`Explain the ${section.title} section.`)}">Ask about section →</a>
         </div>
       </details>
     `).join('');
-    sectionsEl.querySelectorAll('.outline-add-child').forEach(button => {
-      button.addEventListener('click', () => addCustomSubsection(allSections[Number(button.dataset.index)]));
-    });
+  }
+
+  function toggleOutline(open) {
+    if (!sectionsEl) return;
+    sectionsEl.querySelectorAll('details.outline-item').forEach(item => { item.open = open; });
   }
 
   function addCustomSubsection(parent) {

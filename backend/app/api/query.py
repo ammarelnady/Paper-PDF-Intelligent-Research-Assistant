@@ -25,14 +25,17 @@ from app.contracts import RetrievedChunk as ContractRetrievedChunk, WebSource
 from app.llm import CitationFormatter, LLMClient, PromptBuilder
 from app.rag.vector_store import RetrievedChunk
 from app.routing import DeterministicQueryClassifier, LLMQueryClassifier, ResearchRouter
-from app.web_search import DuckDuckGoHtmlSearchProvider, WebSearchClient
+from app.web_search import DuckDuckGoHtmlSearchProvider, FallbackSearchProvider, OpenAlexSearchProvider, WebSearchClient
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/query", tags=["Query & Research"])
 
 # Initialize Shared Components
-web_provider = DuckDuckGoHtmlSearchProvider()
+web_provider = FallbackSearchProvider([
+    DuckDuckGoHtmlSearchProvider(),
+    OpenAlexSearchProvider(),
+])
 web_client = WebSearchClient(provider=web_provider)
 prompt_builder = PromptBuilder()
 llm_client = LLMClient()
@@ -153,11 +156,17 @@ def ask_question(request: QueryRequest):
     )
 
     # 4. Generate Answer via LLM
-    raw_answer = llm_client.generate(
-        prompt=prompt,
-        system_instruction=prompt_builder.system_prompt,
-        temperature=0.2,
-    )
+    if route == "WEB" and not web_sources:
+        raw_answer = (
+            "I could not retrieve live web sources for this question right now. "
+            "Please retry the search, or configure an academic/web search provider."
+        )
+    else:
+        raw_answer = llm_client.generate(
+            prompt=prompt,
+            system_instruction=prompt_builder.system_prompt,
+            temperature=0.2,
+        )
 
     # 5. Format Citations
     citation_data = CitationFormatter.format_citations(

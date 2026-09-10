@@ -13,7 +13,8 @@ from app.contracts import WebSource
 
 
 SearchTransport = Callable[[str, float], str]
-_SEARCH_ENDPOINT: Final = "https://html.duckduckgo.com/html/"
+_SEARCH_ENDPOINT: Final[str] = "https://html.duckduckgo.com/html/"
+_LITE_SEARCH_ENDPOINT: Final[str] = "https://lite.duckduckgo.com/lite/"
 _USER_AGENT: Final = "PaperResearchAssistant/1.0 (web-search boundary)"
 
 
@@ -62,6 +63,19 @@ class DuckDuckGoHtmlSearchProvider:
         except Exception as error:
             raise WebSearchProviderError("DuckDuckGo response could not be parsed") from error
 
+        # Cloud hosts can receive an alternate DuckDuckGo layout or challenge.
+        # Retry the key-free Lite endpoint when the normal page has no results.
+        if not raw_results:
+            try:
+                lite_url = f"{_LITE_SEARCH_ENDPOINT}?{urlencode({'q': normalized_query})}"
+                lite_html = self._transport(lite_url, self._timeout_seconds)
+                lite_parser = _DuckDuckGoResultParser()
+                lite_parser.feed(lite_html)
+                lite_parser.close()
+                raw_results = lite_parser.results()
+            except Exception:
+                raw_results = ()
+
         sources: list[WebSource] = []
         for title, href, snippet in raw_results:
             source = _to_web_source(title, href, snippet)
@@ -94,7 +108,7 @@ class _DuckDuckGoResultParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
         classes = set((attributes.get("class") or "").split())
-        if tag == "a" and "result__a" in classes:
+        if tag == "a" and ({"result__a", "result-link"} & classes):
             self._finish_current()
             self._current = {
                 "title": [],
@@ -102,7 +116,7 @@ class _DuckDuckGoResultParser(HTMLParser):
                 "snippet": [],
             }
             self._start_capture("title", tag)
-        elif self._current is not None and "result__snippet" in classes:
+        elif self._current is not None and ({"result__snippet", "result-snippet"} & classes):
             self._start_capture("snippet", tag)
 
     def handle_endtag(self, tag: str) -> None:

@@ -160,37 +160,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Route badge
     const routeClass = result.route === 'RAG' ? 'badge-rag' : result.route === 'WEB' ? 'badge-web' : 'badge-hybrid';
-    let html = `<div class="route-pill"><span class="badge ${routeClass}">${result.route}</span><span style="color:var(--text-muted); font-size:0.8rem;">Confidence: ${(result.confidence * 100).toFixed(1)}%</span></div>`;
+    const routeIcon = result.route === 'RAG' ? '▤' : result.route === 'WEB' ? '↗' : '✦';
+    let html = `<div class="route-pill"><span class="badge route-badge ${routeClass}"><span class="route-icon">${routeIcon}</span>${result.route}</span><span class="confidence-chip">Confidence ${(result.confidence * 100).toFixed(1)}%</span></div>`;
 
-    // Answer text with line breaks
-    html += `<div style="white-space: pre-wrap; line-height: 1.7;">${escapeHtml(result.answer)}</div>`;
+    // Answer text with lightweight, safe markdown formatting
+    html += `<div class="answer-content">${renderAnswer(result.answer)}</div>`;
 
     // Paper citations
     if (result.paper_citations && result.paper_citations.length > 0) {
-      html += `<div style="margin-top: 1rem;"><span style="font-weight: 600; color: var(--accent-cyan); font-size: 0.85rem;">Paper Sources</span></div>`;
+      html += `<details class="sources-panel">
+        <summary>Paper sources <span>${result.paper_citations.length}</span></summary>`;
       result.paper_citations.forEach((c) => {
         html += `<div class="citation-card">
           <div class="citation-card-header">
             <span>Page ${c.page_number} | ${c.section}</span>
             <span style="color: var(--text-muted); font-size: 0.8rem;">Score: ${c.score.toFixed(4)}</span>
           </div>
-          <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.35rem;">${escapeHtml(c.snippet)}</p>
+          <p>${escapeHtml(c.snippet)}</p>
         </div>`;
       });
+      html += `</details>`;
     }
 
     // Web citations
     if (result.web_citations && result.web_citations.length > 0) {
-      html += `<div style="margin-top: 1rem;"><span style="font-weight: 600; color: var(--accent-emerald); font-size: 0.85rem;">Web Sources</span></div>`;
+      html += `<details class="sources-panel web-sources-panel">
+        <summary>Web sources <span>${result.web_citations.length}</span></summary>`;
       result.web_citations.forEach((w) => {
         html += `<div class="citation-card">
           <div class="citation-card-header">
             <a href="${escapeHtml(w.url)}" target="_blank" rel="noopener" style="color: var(--accent-cyan); text-decoration: none;">${escapeHtml(w.title)}</a>
             <span style="color: var(--text-muted); font-size: 0.8rem;">${escapeHtml(w.domain)}</span>
           </div>
-          <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.35rem;">${escapeHtml(w.snippet)}</p>
+          <p>${escapeHtml(w.snippet)}</p>
         </div>`;
       });
+      html += `</details>`;
     }
 
     bubbleDiv.innerHTML = html;
@@ -230,5 +235,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const div = document.createElement('div');
     div.textContent = text || '';
     return div.innerHTML;
+  }
+
+  function renderAnswer(text) {
+    const safe = escapeHtml(text || 'No answer was returned.').trim();
+    return safe.split(/\n{2,}/).map((block) => {
+      const lines = block.split('\n');
+      const heading = lines[0].match(/^#{1,3}\s+(.+)$/);
+      if (heading) return `<h3>${inlineFormat(heading[1])}</h3>`;
+      if (lines.every(line => /^\s*[-*•]\s+/.test(line))) {
+        return `<ul>${lines.map(line => `<li>${inlineFormat(line.replace(/^\s*[-*•]\s+/, ''))}</li>`).join('')}</ul>`;
+      }
+      return `<p>${inlineFormat(block).replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+  }
+
+  function inlineFormat(text) {
+    return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
   }
 });

@@ -24,3 +24,25 @@ class WebSearchClient:
         if not query.strip():
             raise ValueError("query must not be empty")
         return tuple(self._provider.search(query))
+
+
+class FallbackSearchProvider:
+    """Try providers in order and continue when one is blocked or empty."""
+
+    def __init__(self, providers: Sequence[SearchProvider]) -> None:
+        if not providers:
+            raise ValueError("at least one search provider is required")
+        self._providers = tuple(providers)
+
+    def search(self, query: str) -> tuple[WebSource, ...]:
+        last_error: Exception | None = None
+        for provider in self._providers:
+            try:
+                sources = tuple(provider.search(query))
+                if sources:
+                    return sources
+            except Exception as error:
+                last_error = error
+        if last_error:
+            raise last_error
+        return ()
