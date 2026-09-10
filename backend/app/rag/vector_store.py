@@ -149,6 +149,71 @@ class FaissVectorStore:
                 raise DuplicateChunkIDError(f"Chunk ID '{chunk.chunk_id}' is already indexed.")
             incoming_ids.add(chunk.chunk_id)
 
+    def save(self, directory: str | Path) -> None:
+        """Persist FAISS index and chunk metadata to a directory on disk."""
+        import json
+        from pathlib import Path
+        try:
+            import faiss
+        except ImportError as exc:
+            raise VectorStoreError("faiss is required to save index.") from exc
+
+        path = Path(directory)
+        path.mkdir(parents=True, exist_ok=True)
+        faiss.write_index(self._index, str(path / "index.faiss"))
+
+        chunks_data = [
+            {
+                "document_id": c.document_id,
+                "chunk_id": c.chunk_id,
+                "page_number": c.page_number,
+                "section": c.section,
+                "text": c.text,
+            }
+            for c in self._chunks
+        ]
+        with open(path / "chunks.json", "w", encoding="utf-8") as f:
+            json.dump({
+                "embedding_dimension": self.embedding_dimension,
+                "chunks": chunks_data,
+            }, f, indent=2, ensure_ascii=False)
+
+    @classmethod
+    def load(cls, directory: str | Path) -> FaissVectorStore:
+        """Load persisted FAISS index and chunk metadata from disk."""
+        import json
+        from pathlib import Path
+        try:
+            import faiss
+        except ImportError as exc:
+            raise VectorStoreError("faiss is required to load index.") from exc
+
+        path = Path(directory)
+        if not (path / "index.faiss").exists() or not (path / "chunks.json").exists():
+            raise VectorStoreError(f"No valid FAISS store found at {path}")
+
+        with open(path / "chunks.json", "r", encoding="utf-8") as f:
+            meta = json.load(f)
+
+        dimension = meta["embedding_dimension"]
+        store = cls(embedding_dimension=dimension)
+        store._index = faiss.read_index(str(path / "index.faiss"))
+
+        loaded_chunks = [
+            RetrievedChunk(
+                document_id=item["document_id"],
+                chunk_id=item["chunk_id"],
+                page_number=item["page_number"],
+                section=item["section"],
+                text=item["text"],
+                score=0.0,
+            )
+            for item in meta["chunks"]
+        ]
+        store._chunks = loaded_chunks
+        store._chunk_ids = {c.chunk_id for c in loaded_chunks}
+        return store
+
     @staticmethod
     def _to_retrieved_chunk(chunk: DocumentChunkLike, score: float) -> RetrievedChunk:
         return RetrievedChunk(

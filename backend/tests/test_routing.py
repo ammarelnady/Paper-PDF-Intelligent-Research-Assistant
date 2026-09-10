@@ -9,7 +9,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.contracts import RetrievedChunk, RouteDecision, WebSource
-from app.routing.query_classifier import DeterministicQueryClassifier
+from app.routing.query_classifier import DeterministicQueryClassifier, LLMQueryClassifier
 from app.routing.router import ResearchRouter
 from app.web_search.web_search_client import WebSearchClient
 
@@ -44,6 +44,14 @@ class FakeFallback:
         return self.decision
 
 
+class FakeLLM:
+    def __init__(self, response: str) -> None:
+        self.response = response
+
+    def generate(self, **_kwargs: object) -> str:
+        return self.response
+
+
 class RoutingTests(unittest.TestCase):
     def setUp(self) -> None:
         self.chunk = RetrievedChunk(
@@ -60,6 +68,17 @@ class RoutingTests(unittest.TestCase):
             domain="research.example.org",
             snippet="A provider-supplied update.",
         )
+
+    def test_llm_classifier_uses_structured_route(self) -> None:
+        classifier = LLMQueryClassifier(FakeLLM('{"route":"WEB","confidence":0.87}'))
+        decision = classifier.classify("What are the latest Transformer developments?")
+        self.assertEqual(decision.route, "WEB")
+        self.assertEqual(decision.confidence, 0.87)
+
+    def test_llm_classifier_falls_back_on_invalid_response(self) -> None:
+        classifier = LLMQueryClassifier(FakeLLM("not json"))
+        decision = classifier.classify("What are the main results in this paper?")
+        self.assertEqual(decision.route, "RAG")
 
     def test_paper_specific_query_routes_to_rag_with_confidence(self) -> None:
         decision = DeterministicQueryClassifier().classify(

@@ -1,16 +1,15 @@
 __pycache__/
-<<<<<<< HEAD
-*.pyc
-.venv/
-.env
-data/uploads/
-=======
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 .venv/
 venv/
 .env
 
 data/uploads/*
 !data/uploads/.gitkeep
->>>>>>> origin/main
+data/indices/*
+!data/indices/.gitkeep
+data/documents.json
